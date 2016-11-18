@@ -13,87 +13,46 @@ function [ x2, y2 ] = epipolarCorrespondence( im1, im2, F, x1, y1 )
 %           Save F, pts1, and pts2 used to generate view to q2_6.mat
 %
 %           Explain your methods and optimization in your writeup
-    epiline = F * [x1, y1, 1]';
-    epiline = epiline / norm(epiline);
+    points = 9;
+    x2 = zeros(size(x1));
+    y2 = zeros(size(y1));
 
-    %% Define search parameters
+    for i = 1 : size(x1, 1)
+        x1_i = x1(i);
+        y1_i = y1(i);
+        if x1_i > size(im2, 2) - (points - 1) / 2 || x1_i < 1 + (points - 1) / 2
+            continue;
+        end
 
-    % Define the radius around the pixel considered in the neighbourhood
-    SearchRadius = 5;
+        if y1_i > size(im1, 2) - (points - 1) / 2 || y1_i < 1 + (points - 1) / 2
+            continue;
+        end
+        trim_img1 = double(im1(y1_i - (points - 1) / 2 : y1_i + (points - 1) / 2, x1_i - (points - 1) / 2 : x1_i + (points - 1) / 2));
+        epipolar_line = F * [x1_i; y1_i; 1];
 
-    % Define the pixel weights
-    PixelWeights = fspecial('gaussian', ...
-    [2 * SearchRadius + 1, 2 * SearchRadius + 1], SearchRadius / 2);
+        error = inf;
+       for temp_y2 = 1 + (points - 1)/2:1:size(im2, 1) - (points - 1) / 2
+           temp_x2 = round((-epipolar_line(2) * temp_y2 - epipolar_line(3)) / epipolar_line(1));
 
-    % Define the maximum euclidean distance for the match point coordinates in
-    % the two images
-    MaxDistance = 50;
+           if temp_x2 > size(im2, 2) - (points - 1) / 2 || temp_x2 < 1 + (points - 1) / 2
+               continue;
+           end
 
-    %% Calculate search region using both x and y directions
+           trim_img2 = double(im2(temp_y2 - (points - 1) / 2:temp_y2 + (points - 1) / 2,temp_x2 - (points - 1) / 2:temp_x2 + (points - 1) / 2));
 
-    % Find points in the image on the line using the x direction
-    lx1 = 1 : size(im2, 2);
-    ly1 = round(-(epiline(1) * lx1 + epiline(3)) / epiline(2));
+           error_i = norm(fspecial('gaussian', [points, points] , 1) .* (trim_img1 - trim_img2));
 
-    % Find the valid points
-    ValidPoints1 = lx1 - SearchRadius > 0 & lx1 + SearchRadius <= size(im2, 2) ...
-    & ly1 - SearchRadius > 0 & ly1 + SearchRadius <= size(im2, 1);
-
-    % Find points in the image on the line using the y direction
-    ly2 = 1 : size(im1, 2);
-    lx2 = round(-(epiline(2) * ly2 + epiline(3)) / epiline(1));
-
-    % Find the valid points
-    ValidPoints2 = lx2 - SearchRadius > 0 & lx2 + SearchRadius <= size(im2, 2) ...
-    & ly2 - SearchRadius > 0 & ly2 + SearchRadius <= size(im2, 1);
-
-    % Choose between the point sets
-    lx = lx1;
-    ly = ly1;
-    ValidPoints = ValidPoints1;
-
-    if nnz(ValidPoints1) < nnz(ValidPoints2)
-    lx = lx2;
-    ly = ly2;
-    ValidPoints = ValidPoints2;
-    end
-    ValidPoints = find(ValidPoints);
-
-    %% Calculate the patch on the first image
-    patch1 = double(im1((y1 - SearchRadius) : (y1 + SearchRadius), ...
-    (x1 - SearchRadius) : (x1 + SearchRadius)));
-
-    %% Find the best match
-    Error = inf;
-    Match = 0;
-    for i = ValidPoints
-
-    % Check if the distance of the point from the point on the first image
-    % is less than expected
-    if (x1 - lx(i))^2 + (y1 - ly(i))^2 > MaxDistance^2
-        continue;
+           if error_i < error
+               error = error_i;
+               x2(i) = temp_x2;
+               y2(i) = temp_y2;
+           end
+       end
     end
 
-    % Calculate the patch on the first image
-    patch2 = double(im2((ly(i) - SearchRadius) : (ly(i) + SearchRadius), ...
-        (lx(i) - SearchRadius) : (lx(i) + SearchRadius)));
-
-    % Calculate the weighted Manhattan distance of two patches
-    error = abs(patch1 - patch2) .* PixelWeights;
-    error = sum(error(:));
-
-    if Error > error
-        Error = error;
-        Match = i;
-    end
-    end
-
-    % Return the results
-    x2 = lx(Match);
-    y2 = ly(Match);
-
-    pts1 = [x1,y1];
-    pts2 = [x2,y2];
-
+    pts1 = [x1, y1];
+    pts2 = [x2, y2];
 
     save('q2_6.mat','F','pts1','pts2');
+
+end
