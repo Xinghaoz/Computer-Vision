@@ -5,5 +5,16 @@ function [output, act_h, act_a] = Forward(W, b, X)
 % This function should return the final softmax output layer activations in OUT,
 % as well as the hidden layer pre activations in 'act_a', and the hidden layer post
 % activations in 'act_h'.
+    len = length(W);
+    act_h = cell(1, len);
+    act_a = cell(1, len);
+    act_a{1} = X * W{1} + b{1};
+    act_h{1} = sigmf(act_a{1}, [1 0]);
 
+    for i = 2 : len
+        act_a{i} = act_h{i - 1} * W{i} + b{i};
+        act_h{i} = sigmf(act_a{i}, [1 0]);
+    end
+    act_h{len} = [];
+    output = softmax(act_a{len}')';
 end

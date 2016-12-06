@@ -1,6 +1,6 @@
-function [W, b] = Train(W, b, train_data, train_label, learning_rate)
-% [W, b] = Train(W, b, train_data, train_label, learning_rate) trains the network
-% for one epoch on the input training data 'train_data' and 'train_label'. This
+function [W, b] = Train(W, b, train_data, train_labels, learning_rate)
+% [W, b] = Train(W, b, train_data, train_labels, learning_rate) trains the network
+% for one epoch on the input training data 'train_data' and 'train_labels'. This
 % function should returned the updated network parameters 'W' and 'b' after
 % performing backprop on every data sample.
 
@@ -10,15 +10,14 @@ function [W, b] = Train(W, b, train_data, train_label, learning_rate)
 
 
 for i = 1:size(train_data,1)
+    [~, act_h, act_a] = Forward(W, b, train_data(i,:));
+    [grad_W, grad_b] = Backward(W, b, train_data(i, :), train_labels(i, :), act_h, act_a);
+    [W, b] = UpdateParameters(W, b, grad_W, grad_b, learning_rate);
 
-
-
-    if mod(i, 100) == 0
-        fprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b')
-        fprintf('Done %.2f %%', i/size(train_data,1)*100)
+    if mod(i, 500) == 0
+        fprintf('Done %.2f %%\n', i/size(train_data,1)*100)
     end
 end
-fprintf('\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b')
 
 
 end
